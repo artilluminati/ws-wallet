@@ -1,0 +1,8 @@
+.message{
+    position: fixed;
+    bottom: 10px;
+    width: 100%;
+    max-width: calc(100vw - 40px);
+    padding: 20px;
+    background: #eeeeee;
+}
