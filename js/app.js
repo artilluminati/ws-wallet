@@ -60,13 +60,13 @@ renderMain = () => {
             <section>
                 <header>
                     <span>Текущий баланс</span>
-                    <h2>${getBalance()} ₽</h2>
+                    <h2>${localPrice(getBalance())} ₽</h2>
                     <button onclick="renderAccount()" class="white-btn">Настройки аккаунта</button>
                 </header>
                 <div class="container recommends out">
                     <h4>Рекомендации</h4>
                     <p>Советуем сократить расходы в категории <span id="recs-title">${categories[findMaxSumCategory(operations)[0]]}</span></p>
-                    <p>Вы потратили в ней <span id="recs-sum">${findMaxSumCategory(operations)[1]} ₽</span></p>
+                    <p>Вы потратили в ней <span id="recs-sum">${localPrice(findMaxSumCategory(operations)[1])} ₽</span></p>
                 </div>
                 <div class="container additions">
                     <button onclick="renderAddOperation()">Добавить операцию</button>
@@ -177,7 +177,7 @@ renderHistory = (isReturn) => {
         statsList += `<div class="card out ${element.type==1 ? 'expenses' : 'incomes'}">
                         <div>
                             <span>${categories[element.category]}</span>
-                            <span>${element.sum} ₽</span>
+                            <span>${localPrice(element.sum)} ₽</span>
                         </div>
                     </div>`
     });
@@ -201,6 +201,10 @@ getBalance = () => {
 
     return sum;
 };
+
+localPrice = (price) => {
+    return parseInt(price).toLocaleString('ru-RU');
+}
 
 filterOps = (data) => {
     return data.filter((element)=>{

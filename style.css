@@ -217,7 +217,7 @@ nav > div:nth-child(2) > button{
         flex-wrap: wrap;
     }
     main > section, .container{
-        max-width: calc(100% - 30px);
+        /* max-width: calc(100% - 30px); */
         width: 100%;
         padding: 15px;
         margin: auto;
@@ -242,6 +242,12 @@ nav > div:nth-child(2) > button{
     .message{
         max-width: calc(100vw - 20px);
         width: 100%;
+    }
+    .login-form{
+        margin-top: 30px;
+    }
+    .op-stats{
+        max-width: calc(100% - 30px);
     }
 }
 .card{
