@@ -1,8 +1,86 @@
+*{
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --radius: 10px;
+}
+body{
+    background-color: #e9eaeb;
+}
+
+.container{
+    max-width: 1000px;
+    margin: auto;
+
+}
+.login-form{
+    max-width: 400px;
+    width: 100%;
+    align-self: center;
+    height: 200px;
+    margin-top: 50px;
+    display: flex;
+    flex-direction: column;
+    padding:40px;
+    justify-content: space-between;
+}
+.login-form > *:not(:first-child){
+    margin-top: 40px;
+}
+input{
+    all: unset;
+    width: 100%;
+    height: 50px;
+    padding: 0px 20px;
+    max-width: calc(100% - 40px);
+    border-radius: var(--radius);
+    caret-color: #239df9;
+    box-shadow: inset -4px -4px 5px #ffffff,
+        inset 4px 4px 5px #97a7c3;
+}
+button{
+    text-align: center;
+    vertical-align: center;
+    font-size: 1.2rem;
+    height: 50px;
+    cursor: pointer;
+    box-shadow: -7px -7px 15px #f4f6f8,
+    5px 5px 25px #9eacc7;
+    border-radius: var(--radius);
+    border: none;
+    margin: 10px;
+    padding: 10px;
+}
+button:hover{
+    background: #82aaff;
+    color: #ffffff;
+}
 .message{
     position: fixed;
     bottom: 10px;
     width: 100%;
-    max-width: calc(100vw - 40px);
+    max-width: calc(100vw - 60px);
     padding: 20px;
     background: #eeeeee;
+    border-radius: var(--radius);
+    align-self: center;
+    justify-self: center;
+}
+@keyframes hideMsg {
+    from{
+        opacity: 1;
+    }
+    to{
+        opacity: 0;
+    }
+}
+
+.in{
+    box-shadow: 5px 5px 15px #9eacc7 inset;
+}
+.out{
+    box-shadow: -7px -7px 15px #f4f6f8,
+    5px 5px 25px #9eacc7;
+    border-radius: var(--radius);
+    border: none;
 }
