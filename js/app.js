@@ -28,6 +28,23 @@ renderLogin = () => {
 }
 
 renderMain = () => {
+    user.filters = {
+        category:0,
+        type:0,
+        period:0
+    }
+    historyData = getFilteredOps(user.operations);
+    
+    historyCards = '';
+    historyData.forEach(element => {
+        historyCards+=`
+            <div class="card">
+                <span class="history-category">${user.categories[parseInt(element.category)]}</span>
+                <span class="history-sum">${formatPrice(element.sum)} ₽</span>
+            </div>
+        `;
+    });
+
     main = `
         <main>
             <section>
@@ -38,7 +55,7 @@ renderMain = () => {
                 </header>
                 <div class="recs">
                     <p>Рекомендуем сократить расходы в категории ${user.categories[getMaxCategory()[0]]}</p>
-                    <p>Вы потратили в ней ${getMaxCategory()[1]}</p>
+                    <p>Вы потратили в ней ${getMaxCategory()[1]} ₽</p>
                 </div>
                 <div class="add-buttons">
                     <button onclick="renderAddCategory()">Добавить категорию</button>
@@ -48,17 +65,15 @@ renderMain = () => {
             <section>
                 <h2>История операций</h2>
                 <div class="filters">
-                    <select id="filter-type">
+                    <select id="filter-type" onchange="filterUpdate()">
                         <option value="0">Все</option>
                         <option value="1">Расходы</option>
                         <option value="2">Доходы</option>
                     </select>
-                    <select id="filter-category">
-                        <option value="0">Все категории</option>
-                        <option value="1">Расходы</option>
-                        <option value="2">Доходы</option>
+                    <select id="filter-category" onchange="filterUpdate()">
+                        ${getCategories(true)}
                     </select>
-                    <select id="filter-period">
+                    <select id="filter-period" onchange="filterUpdate()">
                         <option value="0">Все время</option>
                         <option value="1">День</option>
                         <option value="2">Неделя</option>
@@ -66,10 +81,7 @@ renderMain = () => {
                     </select>
                 </div>
                 <div class="history">
-                    <div class="card">
-                        <span class="history-category">Перевод</span>
-                        <span class="history-sum">1000 ₽</span>
-                    </div>
+                    ${historyCards}
                 </div>
             </section>
         </main>
@@ -107,8 +119,7 @@ renderAddOperation = ()=>{
                 <option value="2">Доходы</option>
             </select>
             <select id="op-category">
-                <option value="1">Расходы</option>
-                <option value="2">Доходы</option>
+                ${getCategories()}
             </select>
             <input type="date" id="op-date">
             <input type="number" placeholder="Сумма операции" id="op-sum">
@@ -175,7 +186,7 @@ msg = async (text)=>{
 addCategory = ()=>{
     text = $('#cat-new').val();
     if (text !== ''){
-        user.categories.push()
+        user.categories.push(text)
         msg('Добавлена категория');
     }
     else{msg('Пустая категория')}
@@ -192,9 +203,31 @@ addOperation = ()=>{
     msg('Добавлена операция');
 }
 
+filterUpdate = ()=>{
+    user.filters = {
+        category:$('#filter-category').val(),
+        type:$('#filter-type').val(),
+        period:$('#filter-period').val()
+    };
+
+    historyData = getFilteredOps(user.operations);
+    
+    historyCards = '';
+    historyData.forEach(element => {
+        historyCards+=`
+            <div class="card">
+                <span class="history-category">${user.categories[parseInt(element.category)]}</span>
+                <span class="history-sum">${formatPrice(element.sum)} ₽</span>
+            </div>
+        `;
+    });
+
+    $('.history').html(historyCards);
+}
+
 getFilteredOps = (data)=>{
     dataCopy = data;
-    return dataCopy.filter((elem)=>{
+    dataCopy.filter((elem)=>{
         if (parseInt(elem.category) !== parseInt(user.filters.category)){
             if(user.filters.category != '0'){
                 return false;
@@ -227,23 +260,32 @@ getFilteredOps = (data)=>{
                 }
         
             default:
-                break;
+                return true;
         }
-        return true;
-    })
+    });
+    return dataCopy;
 }
 
 getCategories = (getZero = false)=>{
     catsList = '';
-    return user.categories.forEach((element, id) => {
+    user.categories.forEach((element, id) => {
         if (id > 0 || (getZero && id == 0)){
             catsList+=`<option value="${id}">${element}</option>`
         }
     });
+    return catsList;
 }
 
 getMaxCategory = ()=>{
-    return [0, 0];
+    max = 0;
+    maxCategory = 0;
+    user.operations.forEach((elem, id)=>{
+        if (parseInt(elem.sum) > max){
+            max = elem.sum;
+            maxCategory = id;
+        }
+    })
+    return [maxCategory, max];
 }
 
 changePassword = ()=>{
