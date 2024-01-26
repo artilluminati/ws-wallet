@@ -1,56 +1,273 @@
 const root = $('.root');
+const message = $('.message')
 
-const clearUser = {
-    isAuth : false,
-    password : '0000',
-    lastPage : 'main',
-    balance : 0
-}
+var user= {};
+var operations = [];
+var categories = ['Все','Переводы','Покупки'];
 
-var dataHistory = [
-    {
-        sum:800,
-        category:1,
-        type:1,
-        date:'22-01-2023'
-    },
-    {
-        sum:200,
-        category:2,
-        type:1,
-        date:'22-01-2024'
+$(document).ready(()=>{
+    user = localStorage.getItem('userData') ? JSON.parse(localStorage.getItem('userData')) : {
+        isAuth:false,
+        password:'0000',
+        balance:0,
+        filters:{
+            category:0,
+            type:0,
+            period:0
+        },
+        categories:['Все','Переводы','Покупки']
+    };
+
+    categories = user.categories;
+
+    operations = localStorage.getItem('opHistory') ? JSON.parse(localStorage.getItem('opHistory')) : [];
+
+    $(`#filter-type option:nth-child(${user.filters.type})`).prop('selected');
+    $(`#filter-category option:nth-child(${user.filters.category})`).prop('selected');
+    $(`#filter-period option:nth-child(${user.filters.period})`).prop('selected');
+
+    message.hide();
+
+    if (checkAuth()){
+        renderMain();
     }
-]
+    else{
+        renderLogin();
+    }
+})
 
-filterData = {
-    category:0,
-    type:0,
-    period:0
+renderLogin = () => {
+    main =`
+    <div class="container login-form out">
+        <h2>Вход в аккаунт</h2>
+        <input type="password" id="login-password" class="in" placeholder="Пароль">
+        <button onclick="loginAuth()" class="out">Войти</button>
+    </div>
+    `;
+    root.html(main);
 }
 
-categories = ["Переводы","Покупки"];
+renderMain = () => {
+    catList = '';
+    categories.forEach((element, id) => {
+        catList += `<option value="${id}">${element}</option>`;
+    });
 
-checkPeriod = (periodNum, elem) => {
-    var currentDate = new Date();
-    var weekAgo = new Date(Date() - 7 * 24 * 60 * 60 * 1000);
-    var monthAgo = new Date(Date() - 30 * 7 * 24 * 60 * 60 * 1000);
-    var dayAgo = new Date(Date() - 24 * 60 * 60 * 1000);
+    statsList = renderHistory(true);
 
-    switch (periodNum) {
-        case 1:
-            if (Date(elem.date.split(".")) >= monthAgo && currentDate >= new Date(elem.date)){
+    main = `
+        <main>
+            <section>
+                <header>
+                    <span>Текущий баланс</span>
+                    <h2>${localPrice(getBalance())} ₽</h2>
+                    <button onclick="renderAccount()" class="white-btn">Настройки аккаунта</button>
+                </header>
+                <div class="container recommends out">
+                    <h4>Рекомендации</h4>
+                    <p>Советуем сократить расходы в категории <span id="recs-title">${categories[findMaxSumCategory(operations)[0]]}</span></p>
+                    <p>Вы потратили в ней <span id="recs-sum">${localPrice(findMaxSumCategory(operations)[1])} ₽</span></p>
+                </div>
+                <div class="container additions">
+                    <button onclick="renderAddOperation()">Добавить операцию</button>
+                    <button onclick="renderAddCategory()">Добавить категорию</button>
+                </div>
+            </section>
+            <section>
+                <div class="stats">
+                    <div class="stats-filter">
+                        <select id="filter-type" onchange="filterUpdate()">
+                            <option value="0">Все</option>
+                            <option value="1">Расходы</option>
+                            <option value="2">Доходы</option>
+                        </select>
+                        Категория
+                        <select id="filter-category" onchange="filterUpdate()">
+                            ${catList}
+                        </select>
+                        Период
+                        <select id="filter-period" onchange="filterUpdate()">
+                            <option value="0">Все время</option>
+                            <option value="1">Месяц</option>
+                            <option value="2">Неделя</option>
+                            <option value="3">День</option>
+                        </select>
+                    </div>
+                    <div class="stats-history">
+                        <h2 style="margin-top: 40px">История операций</h2>
+                        ${statsList}
+                    </div>
+                </div>
+            </section>
+        </main>
+    `;
+    root.html(main);
+}
+
+renderAddOperation = () => {
+    catList = '';
+    categories.forEach((element, id) => {
+        if (id>0){
+            catList += `<option value="${id}">${element}</option>`;
+        }
+    });
+
+    main = `
+    <div class="container">
+        <button onclick="renderMain()">Назад</button>
+        <h3 style="margin-top: 10px">Новая операция</h3>
+        <div class="op-stats">
+            <select id="op-type" required>
+                <option value="1">Расходы</option>
+                <option value="2">Доходы</option>
+            </select>
+            Категория
+            <select id="op-category" required>
+                ${catList}
+            </select>
+            Дата
+            <input type="date" id="op-date" required>
+
+            Сумма
+            <input type="number" id="op-sum" required>
+
+            <button onclick="addOperation()">Добавить</button>
+        </div>
+    </div>
+    `;
+    root.html(main);
+}
+
+renderAddCategory = () => {
+    main = `
+    <div class="container">
+        <button onclick="renderMain()">Назад</button>
+        <h3 style="margin-top: 10px">Новая категория</h3>
+        <input type="text" id="new-category" placeholder="Название">
+        <button onclick="addCategory()">Добавить</button>
+    </div>
+    `;
+    root.html(main);
+}
+
+renderAccount = () => {
+    main = `
+    <div class="container">
+        <button onclick="renderMain()">Назад</button>
+        <h3 style="margin-top: 10px">Настройки аккаунта</h3>
+        <div class="change-password">
+            <input type="password" id="change-password" placeholder="Изменить пароль">
+            <button onclick="changePassword()">Изменить</button>
+        </div>
+        <div>
+            Выйти из аккаунта
+            <button onclick="logout()">Выйти</button>
+        </div>
+    </div>
+    `
+    root.html(main);
+}
+
+renderHistory = (isReturn) => {
+    newOperations = operations;
+    filteredOps = filterOps(newOperations);
+    
+    statsList = '';
+    filteredOps.forEach((element, id)=>{
+        statsList += `<div class="card out ${element.type==1 ? 'expenses' : 'incomes'}">
+                        <div>
+                            <span>${categories[element.category]}</span>
+                            <span>${localPrice(element.sum)} ₽</span>
+                        </div>
+                    </div>`
+    });
+
+    if (isReturn){
+        return statsList;
+    }
+    $('.stats-history').html(statsList);
+}
+
+getBalance = () => {
+    sum = 0;
+    operations.forEach((element)=>{
+        if (element.type == '1'){
+            sum -= parseInt(element.sum);
+        }
+        else if(element.type == '2'){
+            sum += parseInt(element.sum);
+        }
+    });
+
+    return sum;
+};
+
+localPrice = (price) => {
+    return parseInt(price).toLocaleString('ru-RU');
+}
+
+filterOps = (data) => {
+    return data.filter((element)=>{
+        if (parseInt(element.category) !== parseInt(user.filters.category)){
+            if (parseInt(user.filters.category) !== 0){
+                return false;
+            }
+        }
+        if (parseInt(element.type) !== parseInt(user.filters.type)){
+            if (parseInt(user.filters.type) !== 0){
+                return false;
+            }
+        }
+        if (!checkPeriod(element.date, user.filters.period)){
+            return false
+        }
+        return true;
+    })
+}
+
+findMaxSumCategory = (data) => {
+    let maxSum = 0;
+    let maxSumCategory = "";
+  
+    for (let i = 0; i < data.length; i++) {
+      let currentSum = parseInt(data[i].sum);
+  
+      if (currentSum > maxSum) {
+        if (data[i].type == '1'){
+            maxSum = currentSum;
+            maxSumCategory = data[i].category;
+        }
+      }
+    }
+
+    if (maxSumCategory == ''){
+        maxSumCategory = "0";
+    }
+  
+    return [maxSumCategory, maxSum];
+}
+
+checkPeriod = (date, period) =>{
+    inpDate = new Date(date);
+    curDate = new Date();
+    dayDate = new Date(curDate.getTime() - 24 * 60 * 60 * 1000)
+    weekDate = new Date(curDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    monthDate = new Date(curDate.getTime() - 30 * 24 * 60 * 60 * 1000)
+    switch (period) {
+        case '3':
+            if(dayDate <= inpDate){
+                return true;
+            }
+            return false;
+        
+        case '1':
+            if(monthDate <= inpDate){
                 return true;
             }
             return false;
 
-        case 2:
-            if (Date(elem.date.split(".")) >= weekAgo && currentDate >= new Date(elem.date)){
-                return true;
-            }
-            return false;
-
-        case 2:
-            if (Date(elem.date.split(".")) >= dayAgo && currentDate >= new Date(elem.date)){
+        case '2':
+            if(weekDate <= inpDate){
                 return true;
             }
             return false;
@@ -60,255 +277,88 @@ checkPeriod = (periodNum, elem) => {
     }
 }
 
-getFormattedPrice = (price) => {
-    return price;
-}
-
-getHistorySum = (dataHistoryArr) => {
-    sum = 0;
-    dataHistoryArr.forEach(element => {
-        sum+=parseInt(element['sum']);
-    });
-    return sum;
-}
-
-checkAuth = () => {
-    try {
-        isAuth = JSON.parse(localStorage.getItem('user'))['isAuth'];
-        return isAuth;
-    }
-    catch{
-        localStorage.setItem('user', JSON.stringify(clearUser));
-        return false;
-    }
-};
-
-loginAuth = () => {
-    let userData = JSON.parse(localStorage.getItem('user'));
-    if (userData['password'] === $('#login-password').val()){
-        userData['isAuth'] = true;
-        renderMain();
-    }
-    localStorage.setItem('user', JSON.stringify(userData));
-};
-
-logoutAuth = () => {
-    let userData = JSON.parse(localStorage.getItem('user'));
-    userData['isAuth'] = false;
-    localStorage.setItem('user', JSON.stringify(userData));
-    renderLogin();
-};
-
-addOperation = () => {
-    let category = $('#newhistory-category').val();
-    let type = $('#newhistory-type').val();
-    let sum = $('#newhistory-num').val();
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    let mm = today.getMonth() + 1;
-    let dd = today.getDate();
-
-    if (dd < 10) dd = '0' + dd;
-    if (mm < 10) mm = '0' + mm;
-
-    const formattedToday = dd + '-' + mm + '-' + yyyy;
-    
-    dataHistory.push({
-        sum:sum,
-        category:category,
-        type:type,
-        date:formattedToday
-    });
-}
-
-filterUpdate = () => {
-    filterData['category'] = parseInt($('#stats-categories').val());
-    filterData['type'] = parseInt($('#stats-type').val());
-    filterData['period'] = $('#stats-period').val();
-
-    // console.log(filterData.category);
+filterUpdate = ()=>{
+    user.filters.category = $('#filter-category').val();
+    user.filters.type = $('#filter-type').val();
+    user.filters.period = $('#filter-period').val();
     renderHistory();
 }
 
-renderHistory = (isReturn) => {
-    historyCards = '';
-    filteredHistory = dataHistory.filter((elem)=>{
-        if (elem.category !== filterData.category && filterData.category !== 0){
-            return false;
-        }
-        console.log(`elem ${elem.type}`);
-        console.log(filterData.type);
-        if (elem.type !== filterData.type){
-            if (filterData.type !== 0){
-                return false;
-            }
-        }
-        if (!checkPeriod(filterData.period, elem)){
-            return false;
-        }
+addOperation = ()=>{
+    operations.push({
+        category:$('#op-category').val(),
+        type:$('#op-type').val(),
+        sum:$('#op-sum').val(),
+        date:$('#op-date').val(),
+    });
+    animateMessage('Добавлена операция', 5000, true);
+}
+
+addCategory = ()=>{
+    if ($('#new-category').val() != ''){
+        categories.push($('#new-category').val());
+        animateMessage('Добавлена категория', 5000, true);
+    }
+}
+
+logout = () => {
+    loginAuth(true);
+    renderLogin();
+}
+
+checkAuth = () => {
+    if (user.isAuth){
         return true;
-    });
+    }
+    return false;
+}
 
-    filteredHistory.forEach(element => {
-        historyCards+= `
-        <div class="cat-btn">
-            <span class="title">${categories[element['category']-1]}</span>
-            <span class="sum">${getFormattedPrice(element['sum'])} ₽</span>
-        </div>
-        `
-    });
-
-    console.log(filteredHistory);
-    console.log(historyCards);
-
-    if (isReturn){
-        return historyCards;
+animateMessage = async (text, time = 1000, isOk = false) =>{
+    message.html(text);
+    if (isOk){
+        message.css('color', '#96ac68!important');
     }
     else{
-        $('.historyStats').html(historyCards);
+        message.css('color', '#ac6868!important');
+    }
+       
+    message.show();
+    setTimeout(() => {
+        message.css('animation', `hideMsg ${0.25*1000*time} ease-in`)
+    }, time*0.75);
+    setTimeout(() => {
+        message.hide();
+    }, time*0.25);
+}
+
+loginAuth = (isLogout) => {
+    if (isLogout){
+        user.isAuth = false;
+    }
+    else{
+        if ($('#login-password').val() == user.password){
+            user.isAuth = true;
+            renderMain();
+            animateMessage('Успешный вход', 5000, 'ok')
+        }
+        else{
+            animateMessage('Неправильный пароль', 5000)
+        }
     }
 }
 
-renderMain = () => {
-    historyCards = renderHistory(true);
-    // filteredHistory = dataHistory.filter((elem)=>{
-    //     if (elem.category !== filterData.category && filterData.category !== 0){
-    //         return false;
-    //     }
-    //     if (elem.type !== filterData.type && filterData.type !== 0){
-    //         return false;
-    //     }
-    //     if (!checkPeriod(filterData.period, elem)){
-    //         return false;
-    //     }
-    //     return true;
-    // });
-    // console.log(filteredHistory);
-
-    // filteredHistory.forEach(element => {
-    //     historyCards+= `
-    //     <div class="cat-btn">
-    //         <span class="title">${categories[element['category']-1]}</span>
-    //         <span class="sum">${getFormattedPrice(element['sum'])} ₽</span>
-    //     </div>
-    //     `
-    // });
-
-    // console.log(historyCards);
-
-    main = `
-    <div class="container">
-        <header>
-            <h4>Ваш текущий баланс:</h4>
-            <h2>${JSON.parse(localStorage.getItem('user')).balance} ₽</h2>
-        </header>
-        <div class="account">
-            <div class="change-password-container">
-                <label for="new-password">Изменить пароль</label>
-                <input type="text" name="new-password" id="new-password" placeholder="Новый пароль">
-                <button id="change-password-btn">Обновить</button>
-            </div>
-            <button id="logout-btn" onclick="logoutAuth()">Выйти из аккаунта</button>
-        </div>
-        <div class="links">
-            <button class="goRecommends">
-                <p>Рекомендации по сокращению расходов</p>
-            </button>
-            <button onclick="renderAddOperation()">
-                <p>Добавить новую операцию</p>
-            </button>
-        </div>
-        <div class="filters">
-            
-        </div>
-        <div class="stats">
-            <div class="infoStats">
-                <p>
-                    <span>Категория</span>
-                    <select name="stats-categories" id="stats-categories" onchange="filterUpdate()">
-                        <option value="0">Все</option>
-                        <option value="1">Переводы</option>
-                        <option value="2">Покупки</option>
-                    </select>
-                </p>
-
-                <span><select name="stats-type" id="stats-type" onchange="filterUpdate()">
-                    <option value="0">все операции</option>
-                    <option value="1">расходы</option>
-                    <option value="2">доходы</option>
-                </select> за 
-                <select name="stats-period" id="stats-period" onchange="filterUpdate()">
-                    <option value="0">все время</option>
-                    <option value="1">месяц</option>
-                    <option value="2">неделю</option>
-                    <option value="3">день</option>
-                </select>
-                
-                </span>
-                
-                <p><span>Операции на сумму</span>&nbsp;<span>${getHistorySum(dataHistory)} ₽</span></p>
-            </div>
-            <div class="historyStats">
-                ${historyCards}
-            </div>
-        </div>
-    </div>
-    `;
-
-    root.html(main);
-};
-
-renderLogin = () => {
-    main = `
-    <div class="container">
-        <label for="login-password">Введите пароль для входа</label>
-        <input type="password" name="login-password" id="login-password" placeholder="Пароль">
-        <input type="submit" id="login-enter" value="Войти" onclick="loginAuth()">
-    </div>
-    `
-
-    root.html(main);
-};
-
-renderAddOperation = () => {
-    main = `
-    <div class="container">
-            <button onclick="renderMain()">Назад</button>
-            <h2>Новая операция</h2>
-            <label for="newhistory-category">Категория</label>
-            <select name="newhistory-category" id="newhistory-category">
-                <option value="1">Переводы</option>
-                <option value="2">Покупки</option>
-            </select>
-            <label for="newhistory-type">Тип</label>
-            <select name="newhistory-type" id="newhistory-type">
-                <option value="1">Расходы</option>
-                <option value="2">Доходы</option>
-            </select>
-
-            <label for=""></label>
-            <input type="num" name="newhistory-num" id="newhistory-num" placeholder="Сумма">
-
-            <button onclick="addOperation()">Добавить</button>
-        </div>
-    `
-    root.html(main);
+changePassword = () => {
+    user.password = $('#change-password').val();
 }
 
-$(document).ready(() => {
-    dataHistory = localStorage.getItem("dataHistory") === null ? [] : JSON.parse(localStorage.getItem("dataHistory"));
-    filterData = localStorage.getItem("dataFilter") === null ? [] : JSON.parse(localStorage.getItem("dataFilter"));
-    if (checkAuth()){
-        renderMain();
-    }
-    else{
-        renderLogin();
-    }
+clearAllData = () => {
+    user=null;
+    operations=null;
+    localStorage.clear();
+}
 
-});
-
-$(document).on('beforeunload',()=>{
-    alert();
-    localStorage.setItem('dataHistory', JSON.stringify(dataHistory));
-    localStorage.setItem('dataFilter', JSON.stringify(filterData));
-});
+window.addEventListener("beforeunload", (e)=>{
+    user.categories = categories;
+    localStorage.setItem("userData", JSON.stringify(user));
+    localStorage.setItem("opHistory", JSON.stringify(operations));
+})
