@@ -1,3 +1,13 @@
+*{
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    --primary: #4535d1;
+    --secondary: #988fe5;
+    --bg: #edecfa;
+    --text: #04002c;
+}
+
 .message{
     position: fixed;
     bottom: 10px;
@@ -5,4 +15,30 @@
     max-width: calc(100vw - 40px);
     padding: 20px;
     background: #eeeeee;
+}
+
+main{
+    display: flex;
+    flex-wrap: wrap;
+    max-width: 1200px;
+    margin: 40px auto;
+}
+
+button{
+    background: var(--primary);
+    border-radius: 10px;
+    border: transparent 1px solid;
+    padding: 10px;
+    color: var(--bg);
+}
+button:hover{
+    border: var(--primary) 1px solid;
+    background: var(--bg);
+    color: var(--primary);
+}
+
+input, select{
+    border: var(--primary) 1px solid;
+    border-radius: 10px;
+    padding: 10px;
 }
