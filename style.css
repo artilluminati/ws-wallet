@@ -8,6 +8,7 @@
     --primary: #96ac68;
     --secondary: #a8cfbb;
     --accent: #83bbb3;
+    gap: 20px;
 }
 body{
     background-color: var(--bg);
