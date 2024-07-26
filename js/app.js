@@ -40,7 +40,7 @@ renderLogin = () => {
     main =`
     <div class="container login-form out">
         <h2>Вход в аккаунт</h2>
-        <input type="password" id="login-password" class="in" placeholder="Пароль">
+        <input type="password" id="login-password" class="in" placeholder="Пароль (0000 по умолчанию)">
         <button onclick="loginAuth()" class="out">Войти</button>
     </div>
     `;
